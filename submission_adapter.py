@@ -7,11 +7,20 @@ code itself in this file.
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+_SRC = Path(__file__).resolve().parent / "src"
+if str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
+
+from alignment import tokenization  # noqa: E402
+
 
 def build_sft_batch(tokenizer, prompts, responses, max_length):
     """Return input_ids, attention_mask, and response-only labels."""
 
-    raise NotImplementedError("Connect this adapter to your SFT batch builder")
+    return tokenization.build_sft_batch(tokenizer, prompts, responses, max_length)
 
 
 def compute_response_logprobs(model, tokenizer, prompts, responses, max_length):
@@ -29,7 +38,9 @@ def compute_sft_loss(model, tokenizer, prompts, responses, max_length):
 def build_dpo_batch(tokenizer, prompts, chosen_responses, rejected_responses, max_length):
     """Return separate response-masked LM batches for chosen and rejected rows."""
 
-    raise NotImplementedError("Connect this adapter to your DPO batch builder")
+    return tokenization.build_dpo_batch(
+        tokenizer, prompts, chosen_responses, rejected_responses, max_length
+    )
 
 
 def compute_dpo_loss_from_logps(
