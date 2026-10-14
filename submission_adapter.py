@@ -14,7 +14,7 @@ _SRC = Path(__file__).resolve().parent / "src"
 if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
-from alignment import tokenization  # noqa: E402
+from alignment import logprobs, tokenization  # noqa: E402
 
 
 def build_sft_batch(tokenizer, prompts, responses, max_length):
@@ -26,13 +26,15 @@ def build_sft_batch(tokenizer, prompts, responses, max_length):
 def compute_response_logprobs(model, tokenizer, prompts, responses, max_length):
     """Return one summed response-token log-probability per input row."""
 
-    raise NotImplementedError("Connect this adapter to your log-probability code")
+    batch = tokenization.build_sft_batch(tokenizer, prompts, responses, max_length)
+    return logprobs.sequence_logps(model, batch)
 
 
 def compute_sft_loss(model, tokenizer, prompts, responses, max_length):
     """Return a scalar response-only SFT loss using either documented reduction."""
 
-    raise NotImplementedError("Connect this adapter to your SFT loss code")
+    batch = tokenization.build_sft_batch(tokenizer, prompts, responses, max_length)
+    return logprobs.sft_loss(model, batch)
 
 
 def build_dpo_batch(tokenizer, prompts, chosen_responses, rejected_responses, max_length):
