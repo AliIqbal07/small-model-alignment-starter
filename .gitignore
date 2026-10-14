@@ -1,2 +1,9 @@
 __pycache__/
 *.py[cod]
+outputs/
+*.safetensors
+*.bin
+*.zip
+.ipynb_checkpoints/
+.venv/
+*.egg-info/
