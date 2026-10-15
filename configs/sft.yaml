@@ -1,0 +1,26 @@
+# SFT on UltraChat (raw text, chat template applied at tokenization time).
+model_name: Qwen/Qwen2.5-0.5B
+train_file: outputs/data/sft_train.jsonl
+val_file: outputs/data/sft_val.jsonl
+output_dir: outputs/sft
+
+max_length: 512
+max_prompt_length: 256
+
+batch_size: 2
+eval_batch_size: 8
+grad_accum: 16          # effective batch = 32 sequences
+lr: 2.0e-5
+warmup_ratio: 0.03
+weight_decay: 0.1
+max_grad_norm: 1.0
+epochs: 1
+max_steps: null         # set to cap optimizer steps (e.g. pilots)
+
+eval_every: 100
+log_every: 10
+
+seed: 42
+device: cuda:0
+fp16: true
+gradient_checkpointing: false
