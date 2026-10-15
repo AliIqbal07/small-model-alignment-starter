@@ -2,7 +2,7 @@
 
 Example:
     python scripts/summarize_judgments.py --judgments outputs/judgments/sft_vs_dpo_hh_hh.jsonl \\
-        --model_x dpo_hh --model_y sft --out_json outputs/judgments/sft_vs_dpo_hh_hh.summary.json \\
+        --model_x dpo_hh --model_y sft --eval_set hh_rlhf_eval_300 --out_json outputs/judgments/sft_vs_dpo_hh_hh.summary.json \\
         --out_md outputs/judgments/sft_vs_dpo_hh_hh.summary.md
 """
 
@@ -27,6 +27,7 @@ def main(argv=None):
     parser.add_argument("--model_x", required=True)
     parser.add_argument("--model_y", required=True)
     parser.add_argument("--failures_path", help="failures JSONL; counts pairs never judged successfully")
+    parser.add_argument("--eval_set", help="eval set label stored in the summary (e.g. alpaca_eval_300)")
     parser.add_argument("--out_json", required=True)
     parser.add_argument("--out_md", required=True)
     args = parser.parse_args(argv)
@@ -37,6 +38,7 @@ def main(argv=None):
         failures = unresolved_failures(read_jsonl(args.failures_path), judgments)
 
     summary = summarize(judgments, args.model_x, args.model_y, failures=failures)
+    summary["eval_set"] = args.eval_set
     markdown = summary_markdown(summary)
     write_json(args.out_json, summary)
     write_text(args.out_md, markdown)
