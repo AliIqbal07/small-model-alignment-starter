@@ -298,15 +298,43 @@ def test_fake_backend_answers_every_pair():
     assert set(parsed) == {p["pair_id"] for p in pairs}
 
 
-def test_kaggle_backend_is_a_placeholder(monkeypatch):
+class FakeLLMChat:
+    """Stands in for a kaggle_benchmarks LLMChat: .prompt(text, temperature=...) -> str."""
+
+    def __init__(self, reply):
+        self.reply = reply
+        self.calls = []
+
+    def prompt(self, text, temperature=None):
+        self.calls.append({"text": text, "temperature": temperature})
+        return self.reply
+
+
+@pytest.fixture
+def fake_kbench(monkeypatch):
     import sys
     import types
 
-    # Simulate Kaggle, where kaggle_benchmarks is importable.
-    monkeypatch.setitem(sys.modules, "kaggle_benchmarks", types.ModuleType("kaggle_benchmarks"))
-    call = make_call_judge("kaggle", "some-model")
-    with pytest.raises(NotImplementedError, match="kaggle_benchmarks"):
-        call("prompt")
+    # Simulate Kaggle, where kaggle_benchmarks is importable and exposes an `llms` dict.
+    module = types.ModuleType("kaggle_benchmarks")
+    module.llms = {"google/gemini-3.6-flash": FakeLLMChat(reply(["p1"], "B"))}
+    monkeypatch.setitem(sys.modules, "kaggle_benchmarks", module)
+    return module
+
+
+def test_kaggle_backend_prompts_the_chosen_model_at_temperature_zero(fake_kbench):
+    call = make_call_judge("kaggle", "google/gemini-3.6-flash")
+
+    text = call("judge these pairs")
+
+    assert text == reply(["p1"], "B")
+    assert fake_kbench.llms["google/gemini-3.6-flash"].calls == [{"text": "judge these pairs", "temperature": 0}]
+    assert parse_judgments(text, ["p1"])["p1"]["winner"] == "B"
+
+
+def test_kaggle_backend_unknown_model_lists_options(fake_kbench):
+    with pytest.raises(ValueError, match=r"not available; options: \['google/gemini-3.6-flash'\]"):
+        make_call_judge("kaggle", "no/such-model")
 
 
 def test_unknown_backend_raises():

@@ -14,17 +14,20 @@ def _fake_judge(prompt):
     return json.dumps([{"pair_id": pid, "winner": "A", "reason": "fake judge always picks A"} for pid in ids])
 
 
-# ---------------------------------------------------------------------------
-# KAGGLE JUDGE PLACEHOLDER: edit this function only.
-# ---------------------------------------------------------------------------
 def _make_kaggle_judge(judge_model):
-    def call_judge(prompt):
-        import kaggle_benchmarks  # noqa: F401  (lazy: only available on Kaggle)
+    """Judge via kaggle_benchmarks (Kaggle Benchmark Task notebooks only).
 
-        # TODO: send `prompt` to `judge_model` and return the reply text (str).
-        raise NotImplementedError(
-            "Fill in using the kaggle_benchmarks example from the Kaggle utility-benchmark notebook"
-        )
+    kbench.llms maps model names to LLMChat objects; .prompt() calls do not share history,
+    so every batch is judged independently.
+    """
+    import kaggle_benchmarks as kbench  # lazy: only available on Kaggle
+
+    if judge_model not in kbench.llms:
+        raise ValueError(f"Judge model {judge_model!r} not available; options: {sorted(kbench.llms)}")
+    llm = kbench.llms[judge_model]
+
+    def call_judge(prompt):
+        return str(llm.prompt(prompt, temperature=0))
 
     return call_judge
 
