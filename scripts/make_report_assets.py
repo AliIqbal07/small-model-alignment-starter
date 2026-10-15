@@ -6,7 +6,7 @@ Inputs (all optional):
     report/results/*.summary.json           from scripts/summarize_judgments.py
     report/data_stats.json                  from scripts/prepare_data.py
 Outputs:
-    report/figures/*.png (150 dpi), report/tables/config_table.md, report/tables/results_table.md
+    report/figures/*.png (150 dpi), report/tables/{config,generation,results}_table.md
 """
 
 from __future__ import annotations
@@ -22,7 +22,14 @@ if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
 from alignment.io_utils import read_json, write_text  # noqa: E402
-from alignment.report_utils import config_table, plot_dpo, plot_persona, plot_sft, results_table  # noqa: E402
+from alignment.report_utils import (  # noqa: E402
+    config_table,
+    generation_table,
+    plot_dpo,
+    plot_persona,
+    plot_sft,
+    results_table,
+)
 
 RUNS = ROOT / "report" / "runs"
 FIGURES = ROOT / "report" / "figures"
@@ -53,6 +60,10 @@ def main():
     config_md = TABLES / "config_table.md"
     write_text(config_md, config_table(run_dirs, data_stats))
     made.append(config_md.relative_to(ROOT))
+
+    generation_md = TABLES / "generation_table.md"
+    write_text(generation_md, generation_table(ROOT / "configs" / "generate.yaml"))
+    made.append(generation_md.relative_to(ROOT))
 
     summaries = {}
     for path in sorted(RESULTS.glob("*.summary.json")):

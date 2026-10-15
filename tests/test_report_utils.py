@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 
 import pytest
 
@@ -11,6 +12,7 @@ pytest.importorskip("matplotlib")
 
 from alignment.report_utils import (  # noqa: E402
     config_table,
+    generation_table,
     load_metrics,
     plot_dpo,
     plot_persona,
@@ -39,7 +41,7 @@ def make_sft_run(run_dir):
     (run_dir / "config_resolved.yaml").write_text(
         "model_name: Qwen/Qwen2.5-0.5B\ntrain_file: outputs/data/sft_train.jsonl\nval_file: outputs/data/sft_val.jsonl\n"
         "max_length: 512\nmax_prompt_length: 256\nbatch_size: 2\ngrad_accum: 16\nlr: 2.0e-05\n"
-        "warmup_ratio: 0.03\nweight_decay: 0.1\nepochs: 1\nmax_steps: null\nfp16: true\nseed: 42\n"
+        "warmup_ratio: 0.03\nweight_decay: 0.1\nmax_grad_norm: 1.0\nepochs: 1\nmax_steps: null\nfp16: true\nseed: 42\n"
     )
     return run_dir
 
@@ -64,7 +66,7 @@ def make_dpo_run(run_dir):
     (run_dir / "config_resolved.yaml").write_text(
         "sft_model_path: outputs/sft/best\ntrain_file: outputs/data/hh_train.jsonl\nval_file: outputs/data/hh_val.jsonl\n"
         "beta: 0.1\nmax_length: 512\nmax_prompt_length: 256\nbatch_size: 1\ngrad_accum: 32\noptimizer: rmsprop\n"
-        "lr: 1.0e-06\nwarmup_steps: 50\nepochs: 1\nfp16: true\nreference_dtype: float32\nseed: 42\n"
+        "lr: 1.0e-06\nwarmup_steps: 50\nmax_grad_norm: 1.0\nepochs: 1\nfp16: true\nreference_dtype: float32\nseed: 42\n"
     )
     return run_dir
 
@@ -158,7 +160,8 @@ def table_rows(markdown):
     """{first cell: [other cells]} for a markdown table."""
     rows = {}
     for line in markdown.splitlines():
-        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        # Split on unescaped pipes only, like a markdown renderer.
+        cells = [c.strip() for c in re.split(r"(?<!\\)\|", line.strip().strip("|"))]
         if len(cells) > 1 and not set(cells[0]) <= {"-", ":"}:
             rows[cells[0]] = cells[1:]
     return rows
@@ -185,6 +188,11 @@ def test_config_table(tmp_path):
     assert rows["LoRA r / alpha / dropout"] == ["—", "—", "16 / 32 / 0.05", "—"]
     assert rows["LoRA targets"][2] == "q_proj, v_proj"
     assert rows["Reference dtype"][:2] == ["—", "float32"]
+    assert rows["Trainable params"] == ["full fine-tuning", "full fine-tuning", "LoRA adapter only", "—"]
+    assert rows["Grad clipping"] == ["max_grad_norm 1", "max_grad_norm 1", "max_grad_norm 1 (TRL default)", "—"]
+    assert rows["Reference model"] == [
+        "—", "outputs/sft/best (frozen copy)", "base model with LoRA adapter disabled", "—"
+    ]
     assert rows["Warmup"][:2] == ["3% of steps", "50 steps"]
     assert all(cell == "—" for cell in (row[3] for row in rows.values() if row is not rows["Setting"]))
 
@@ -207,3 +215,29 @@ def test_results_table_formats_rates_and_ci(tmp_path):
                                      "60.0%", "58.6%", "[53.0%, 64.5%]"]
     assert rows["a vs b"][0] == "—" and rows["a vs b"][-3:] == ["—", "—", "—"]
     assert "missing" not in rows
+
+
+def test_generation_table(tmp_path):
+    path = tmp_path / "generate.yaml"
+    path.write_text("max_new_tokens: 512\nrepetition_penalty: 1.1\nno_repeat_ngram_size: 0\nbatch_size: 16\n")
+
+    table = generation_table(path)
+    rows = table_rows(table)
+
+    assert rows["Decoding"][0].startswith("greedy") and "do_sample=False" in rows["Decoding"][0]
+    assert "temperature" in rows["Decoding"][0] and "top-p" in rows["Decoding"][0]
+    assert rows["max_new_tokens"] == ["512"]
+    assert rows["repetition_penalty"] == ["1.1"]
+    assert rows["no_repeat_ngram_size"] == ["0 (off)"]
+    assert rows["Batch size"] == ["16"]
+    assert '"You are a helpful assistant."' in rows["Chat template (Qwen2.5 runs)"][0]
+    assert rows["Stop tokens"][0] == r"tokenizer eos_token_id + `<\|im_end\|>` (deduplicated)"
+    assert all(len(cells) == 1 for cells in rows.values())  # no cell was split by a stray pipe
+    persona = rows["Persona comparison"][0]
+    assert "SmolLM2-360M-Instruct" in persona and "own chat template" in persona and "same greedy" in persona
+
+
+def test_generation_table_missing_file_uses_dashes(tmp_path, capsys):
+    rows = table_rows(generation_table(tmp_path / "none.yaml"))
+    assert rows["max_new_tokens"] == ["—"] and rows["Batch size"] == ["—"]
+    assert "not found" in capsys.readouterr().out

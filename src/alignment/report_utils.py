@@ -234,11 +234,17 @@ def _config_column(cfg, data_stats):
         warmup = f"{cfg['warmup_ratio']:.0%} of steps"
     elif cfg.get("warmup_steps") is not None:
         warmup = f"{cfg['warmup_steps']} steps"
+    clip = cfg.get("max_grad_norm")
+    if clip is not None:
+        clip = f"max_grad_norm {_fmt(clip)}"
+    elif kind == "persona":
+        clip = "max_grad_norm 1 (TRL default)"
     lora = None
     if kind == "persona":
         lora = f"{_fmt(cfg.get('r'))} / {_fmt(cfg.get('lora_alpha'))} / {_fmt(cfg.get('lora_dropout'))}"
     return {
         "Init model": _first(cfg, "sft_model_path", "model_name"),
+        "Trainable params": "LoRA adapter only" if kind == "persona" else "full fine-tuning",
         "Train / val examples": _data_sizes(cfg, kind, data_stats),
         "Max length": cfg.get("max_length"),
         "Max prompt length": cfg.get("max_prompt_length"),
@@ -254,9 +260,14 @@ def _config_column(cfg, data_stats):
         "Beta": cfg.get("beta"),
         "Epochs": _first(cfg, "epochs", "num_train_epochs"),
         "Max steps": cfg.get("max_steps"),
+        "Grad clipping": clip,
         "Precision": "fp16 autocast, fp32 weights" if cfg.get("fp16", kind == "persona") else "fp32",
-        "Reference dtype": {"sft": None, "dpo": cfg.get("reference_dtype"),
-                            "persona": "base model, adapter disabled"}[kind],
+        "Reference model": {
+            "sft": None,
+            "dpo": f"{cfg['sft_model_path']} (frozen copy)" if cfg.get("sft_model_path") else None,
+            "persona": "base model with LoRA adapter disabled",
+        }[kind],
+        "Reference dtype": {"sft": None, "dpo": cfg.get("reference_dtype"), "persona": "float32"}[kind],
         "LoRA r / alpha / dropout": lora,
         "LoRA targets": cfg.get("target_modules"),
         "Seed": cfg.get("seed"),
@@ -264,9 +275,9 @@ def _config_column(cfg, data_stats):
 
 
 CONFIG_ROWS = (
-    "Init model", "Train / val examples", "Max length", "Max prompt length", "Batch size", "Grad accum",
-    "Effective batch", "Optimizer", "Learning rate", "Weight decay", "Warmup", "LR schedule", "Beta",
-    "Epochs", "Max steps", "Precision", "Reference dtype", "LoRA r / alpha / dropout", "LoRA targets", "Seed",
+    "Init model", "Trainable params", "Train / val examples", "Max length", "Max prompt length", "Batch size", "Grad accum",
+    "Effective batch", "Optimizer", "Learning rate", "Weight decay", "Warmup", "LR schedule",
+    "Grad clipping", "Beta", "Epochs", "Max steps", "Precision", "Reference model", "Reference dtype", "LoRA r / alpha / dropout", "LoRA targets", "Seed",
 )
 
 
@@ -315,4 +326,34 @@ def results_table(summary_paths):
         )
         lines.append("| " + " | ".join(str(c) for c in cells) + " |")
     lines += ["", "Wins / losses / win rates are for the first model named in each comparison."]
+    return "\n".join(lines) + "\n"
+
+
+def generation_table(generate_yaml_path):
+    """Markdown table of the decoding settings used for every model's eval generations."""
+    path = Path(generate_yaml_path)
+    if path.exists():
+        cfg = yaml.safe_load(path.read_text()) or {}
+    else:
+        print(f"generation table: {path} not found; settings shown as {DASH}")
+        cfg = {}
+    ngram = cfg.get("no_repeat_ngram_size")
+    rows = [
+        ("Decoding", "greedy (do_sample=False, so temperature / top-p are not used)"),
+        ("max_new_tokens", _fmt(cfg.get("max_new_tokens"))),
+        ("repetition_penalty", _fmt(cfg.get("repetition_penalty"))),
+        ("no_repeat_ngram_size", f"{ngram} (off)" if ngram == 0 else _fmt(ngram)),
+        ("Batch size", _fmt(cfg.get("batch_size"))),
+        ("Prompt format", "each model's own tokenizer chat template, one user turn, "
+                          "add_generation_prompt=True; no system message added by us; left padding"),
+        ("Chat template (Qwen2.5 runs)", 'SFT, DPO-HH, DPO-UF: Qwen chat template, which inserts the default '
+                                         'system prompt "You are a helpful assistant."'),
+        ("Persona comparison", "SmolLM2-360M-Instruct base vs. base + merged LoRA: SmolLM2's own chat template "
+                               "and the default system prompt it inserts, with the same greedy settings"),
+        ("Stop tokens", r"tokenizer eos_token_id + `<\|im_end\|>` (deduplicated)"),  # \| keeps the table intact
+        ("Output text", "new tokens only, special tokens skipped, whitespace stripped"),
+    ]
+    lines = ["| Setting | Value |", "|---|---|"]
+    lines += [f"| {name} | {value} |" for name, value in rows]
+    lines += ["", "The same settings are used for every model in a comparison."]
     return "\n".join(lines) + "\n"
