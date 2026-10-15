@@ -1,0 +1,6 @@
+# Greedy decoding settings. The same settings are used for every model in a comparison,
+# so differences in outputs come from the models, not from decoding.
+max_new_tokens: 512
+repetition_penalty: 1.1
+no_repeat_ngram_size: 0   # 0 = off
+batch_size: 16

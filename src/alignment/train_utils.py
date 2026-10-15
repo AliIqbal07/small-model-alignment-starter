@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import math
 import random
@@ -10,6 +11,20 @@ from pathlib import Path
 import torch
 import yaml
 from torch.optim.lr_scheduler import LambdaLR
+
+
+def fp16_autocast(device, enabled):
+    """torch.autocast to float16 on the device's type when enabled, else a no-op context."""
+    if enabled:
+        return torch.autocast(device_type=torch.device(device).type, dtype=torch.float16)
+    return contextlib.nullcontext()
+
+
+def grad_scaler(enabled):
+    """CUDA GradScaler (a pass-through when disabled)."""
+    if hasattr(torch.amp, "GradScaler"):
+        return torch.amp.GradScaler("cuda", enabled=enabled)
+    return torch.cuda.amp.GradScaler(enabled=enabled)  # torch < 2.3
 
 
 def set_seed(seed):

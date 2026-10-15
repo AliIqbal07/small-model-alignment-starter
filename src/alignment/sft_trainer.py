@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import contextlib
 import json
 import math
 import time
@@ -14,21 +13,9 @@ from torch.utils.data import DataLoader
 
 from alignment.logprobs import response_token_logps, sft_loss
 from alignment.tokenization import IGNORE_INDEX, encode_prompt_response, pad_and_stack, resolve_pad_id
-from alignment.train_utils import MetricsLogger, cosine_with_warmup, param_groups
+from alignment.train_utils import MetricsLogger, cosine_with_warmup, fp16_autocast, grad_scaler, param_groups
 
 MAX_NONFINITE_STREAK = 5
-
-
-def _autocast(device, use_fp16):
-    if use_fp16:
-        return torch.autocast(device_type=device.type, dtype=torch.float16)
-    return contextlib.nullcontext()
-
-
-def _grad_scaler(enabled):
-    if hasattr(torch.amp, "GradScaler"):
-        return torch.amp.GradScaler("cuda", enabled=enabled)
-    return torch.cuda.amp.GradScaler(enabled=enabled)  # torch < 2.3
 
 
 def _decode(tokenizer, ids):
@@ -52,7 +39,7 @@ def evaluate(model, loader, device, use_fp16):
     model.eval()
     total_nll, total_tokens = 0.0, 0
     for batch in loader:
-        with _autocast(device, use_fp16):
+        with fp16_autocast(device, use_fp16):
             token_logps, mask = response_token_logps(model, batch)
         total_nll += -(token_logps * mask).sum().item()
         total_tokens += int(mask.sum().item())
@@ -114,7 +101,7 @@ def train_sft(cfg, model, tokenizer, train_rows, val_rows, output_dir, format_fn
 
     optimizer = torch.optim.AdamW(param_groups(model, cfg["weight_decay"]), lr=cfg["lr"])
     scheduler = cosine_with_warmup(optimizer, warmup_steps, total_steps)
-    scaler = _grad_scaler(use_fp16)
+    scaler = grad_scaler(use_fp16)
     logger = MetricsLogger(output_dir / "metrics.jsonl")
     print(
         f"SFT: {len(train_data)} train / {len(val_data)} val rows, {num_batches} micro-batches/epoch, "
@@ -150,7 +137,7 @@ def train_sft(cfg, model, tokenizer, train_rows, val_rows, output_dir, format_fn
                 group_start = batch_index - batch_index % grad_accum
                 group_size = min(grad_accum, num_batches - group_start)
 
-                with _autocast(device, use_fp16):
+                with fp16_autocast(device, use_fp16):
                     loss = sft_loss(model, batch)
                 if torch.isfinite(loss):
                     nonfinite_streak = 0

@@ -1,0 +1,32 @@
+# DPO on hh preference pairs, starting from the SFT checkpoint (raw text, chat template at tokenization).
+sft_model_path: outputs/sft/best
+train_file: outputs/data/hh_train.jsonl
+val_file: outputs/data/hh_val.jsonl
+output_dir: outputs/dpo_hh
+
+beta: 0.1
+max_length: 512
+max_prompt_length: 256
+
+batch_size: 1           # pairs per micro-batch
+eval_batch_size: 4
+grad_accum: 32          # effective batch = 32 pairs
+optimizer: rmsprop
+lr: 1.0e-6
+warmup_steps: 0
+max_grad_norm: 1.0
+epochs: 1
+max_steps: null
+
+eval_every: 50
+log_every: 5
+
+seed: 42
+policy_device: cuda:0
+reference_device: cuda:1
+# reference_dtype float32 deviates from the manual's fp16: loading the reference with the same
+# weights and dtype as the policy makes them numerically identical at step 0, so the step-0
+# reward accuracy is exactly 0 (and loss log 2) instead of being perturbed by fp16 rounding.
+reference_dtype: float32
+fp16: true
+gradient_checkpointing: false
