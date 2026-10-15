@@ -14,7 +14,7 @@ _SRC = Path(__file__).resolve().parent / "src"
 if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
-from alignment import logprobs, tokenization  # noqa: E402
+from alignment import dpo, logprobs, tokenization  # noqa: E402
 
 
 def build_sft_batch(tokenizer, prompts, responses, max_length):
@@ -54,7 +54,13 @@ def compute_dpo_loss_from_logps(
 ):
     """Return the scalar mean DPO objective from per-example log probabilities."""
 
-    raise NotImplementedError("Connect this adapter to your tensor-level DPO loss")
+    return dpo.dpo_loss_from_logps(
+        policy_chosen_logps,
+        policy_rejected_logps,
+        reference_chosen_logps,
+        reference_rejected_logps,
+        beta,
+    )
 
 
 def compute_dpo_loss(
@@ -69,4 +75,7 @@ def compute_dpo_loss(
 ):
     """Return a scalar mean DPO loss with a frozen reference computation."""
 
-    raise NotImplementedError("Connect this adapter to your DPO loss code")
+    batch = tokenization.build_dpo_batch(
+        tokenizer, prompts, chosen_responses, rejected_responses, max_length
+    )
+    return dpo.dpo_forward(policy_model, reference_model, batch, beta)["loss"]
