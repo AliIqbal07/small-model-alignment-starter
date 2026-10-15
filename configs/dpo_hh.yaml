@@ -13,7 +13,10 @@ eval_batch_size: 4
 grad_accum: 32          # effective batch = 32 pairs
 optimizer: rmsprop
 lr: 1.0e-6
-warmup_steps: 0
+# RMSprop has no bias correction, so its first updates are ~10x the nominal lr; a 50-step linear
+# warmup (≈10% of ~469 steps) avoids the early val-loss spike seen in the pilot (0.693 -> 0.728 at step 5).
+# The original DPO recipe also warms up RMSprop.
+warmup_steps: 50
 max_grad_norm: 1.0
 epochs: 1
 max_steps: null
