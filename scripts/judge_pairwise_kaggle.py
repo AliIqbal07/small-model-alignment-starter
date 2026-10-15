@@ -31,7 +31,7 @@ def parse_args(argv=None):
     parser.add_argument("--sleep_seconds", type=float, default=5)
     parser.add_argument("--max_retries", type=int, default=3)
     parser.add_argument("--reuse_judgments", action="store_true", help="resume: skip pairs already judged")
-    parser.add_argument("--rubric", choices=["general", "safety"], default="general")
+    parser.add_argument("--rubric", choices=["general", "safety", "persona"], default="general")
     parser.add_argument("--backend", choices=["kaggle", "fake"], default="kaggle")
     parser.add_argument("--failures_path", help="default: <output_path stem>_failures.jsonl")
     parser.add_argument("--limit", type=int, help="judge only the first N pairs")

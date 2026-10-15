@@ -1,0 +1,24 @@
+# Persona track (Task 5): TRL DPOTrainer + PEFT LoRA on a small instruct model.
+model_name: HuggingFaceTB/SmolLM2-360M-Instruct
+data_path: data/persona_lora/ramsay_style_preferences.json
+n_eval: 20
+output_dir: outputs/persona_lora
+
+# LoRA. r=16 / alpha=32 is a common moderate capacity; the attention projections are
+# enough to shift style/tone without touching the MLPs.
+r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+target_modules: [q_proj, k_proj, v_proj, o_proj]
+
+# DPO. LoRA trains only a few parameters, so a higher lr than full fine-tuning is standard.
+beta: 0.1
+learning_rate: 5.0e-5
+per_device_train_batch_size: 4
+gradient_accumulation_steps: 4     # effective batch = 16 pairs
+num_train_epochs: 3
+max_length: 512
+max_prompt_length: 256
+logging_steps: 2
+eval_steps: 5
+seed: 42

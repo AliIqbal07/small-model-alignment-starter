@@ -3,6 +3,9 @@
 Example:
     python scripts/generate.py --model_path outputs/sft/best --generator_name sft \\
         --eval_set eval_sets/alpaca_eval_300_seed42.json --output outputs/gen/sft_alpaca.json
+With a LoRA adapter (persona task):
+    python scripts/generate.py --model_path HuggingFaceTB/SmolLM2-360M-Instruct \\
+        --adapter_path outputs/persona_lora/adapter --generator_name persona_lora ...
 Sanity check (prints prompts and outputs, writes nothing):
     python scripts/generate.py ... --limit 3
 """
@@ -37,6 +40,7 @@ def parse_args(argv=None):
     parser.add_argument("--batch_size", type=int)
     parser.add_argument("--limit", type=int, help="sanity mode: first N rows, print them, write nothing")
     parser.add_argument("--device", default="cuda:0")
+    parser.add_argument("--adapter_path", help="optional LoRA adapter, merged into the base model")
     return parser.parse_args(argv)
 
 
@@ -56,6 +60,11 @@ def main(argv=None):
 
     tokenizer = AutoTokenizer.from_pretrained(args.model_path)
     model = AutoModelForCausalLM.from_pretrained(args.model_path, torch_dtype=torch.float16)
+    if args.adapter_path:
+        from peft import PeftModel
+
+        model = PeftModel.from_pretrained(model, args.adapter_path).merge_and_unload()
+        print(f"Merged LoRA adapter from {args.adapter_path}")
     model.to(args.device).eval()
     generate_batch = make_hf_generate_fn(model, tokenizer, cfg)
 
@@ -78,6 +87,7 @@ def main(argv=None):
     write_json(output, outputs)
     meta = {
         "model_path": args.model_path,
+        "adapter_path": args.adapter_path,
         "generator_name": args.generator_name,
         "eval_set": args.eval_set,
         "decoding": {"do_sample": False, **{key: cfg[key] for key in DECODING_KEYS}},
