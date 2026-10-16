@@ -1,0 +1,22 @@
+beta: 0.1
+data_path: data/persona_lora/ramsay_style_preferences.json
+eval_steps: 5
+gradient_accumulation_steps: 4
+learning_rate: 5.0e-05
+logging_steps: 2
+lora_alpha: 32
+lora_dropout: 0.05
+max_length: 512
+max_prompt_length: 256
+model_name: HuggingFaceTB/SmolLM2-360M-Instruct
+n_eval: 20
+num_train_epochs: 3
+output_dir: /kaggle/working/pa2/outputs/persona_lora
+per_device_train_batch_size: 4
+r: 16
+seed: 42
+target_modules:
+- q_proj
+- k_proj
+- v_proj
+- o_proj

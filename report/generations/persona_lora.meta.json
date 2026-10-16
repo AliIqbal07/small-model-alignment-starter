@@ -1,0 +1,18 @@
+{
+  "model_path": "HuggingFaceTB/SmolLM2-360M-Instruct",
+  "adapter_path": "outputs/persona_lora/adapter",
+  "generator_name": "persona_lora",
+  "eval_set": "eval_sets/persona_style_prompts.json",
+  "decoding": {
+    "do_sample": false,
+    "max_new_tokens": 512,
+    "repetition_penalty": 1.1,
+    "no_repeat_ngram_size": 0,
+    "batch_size": 16
+  },
+  "num_rows": 40,
+  "num_hit_stop": 40,
+  "frac_hit_stop": 1.0,
+  "mean_num_new_tokens": 282.65,
+  "elapsed_s": 54.7115740776062
+}

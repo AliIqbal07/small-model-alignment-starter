@@ -1,0 +1,18 @@
+{
+  "model_path": "/kaggle/input/notebooks/aliiqbal1/pa2-02-sft/pa2/outputs/sft/best",
+  "adapter_path": null,
+  "generator_name": "sft",
+  "eval_set": "eval_sets/alpaca_eval_300_seed42.json",
+  "decoding": {
+    "do_sample": false,
+    "max_new_tokens": 512,
+    "repetition_penalty": 1.1,
+    "no_repeat_ngram_size": 0,
+    "batch_size": 16
+  },
+  "num_rows": 300,
+  "num_hit_stop": 290,
+  "frac_hit_stop": 0.9666666666666667,
+  "mean_num_new_tokens": 182.72666666666666,
+  "elapsed_s": 285.8290615081787
+}

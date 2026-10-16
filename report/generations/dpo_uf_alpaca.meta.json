@@ -1,0 +1,18 @@
+{
+  "model_path": "/kaggle/input/notebooks/aliiqbal1/pa2-04-dpo-uf/pa2/outputs/dpo_uf/best",
+  "adapter_path": null,
+  "generator_name": "dpo_uf",
+  "eval_set": "eval_sets/alpaca_eval_300_seed42.json",
+  "decoding": {
+    "do_sample": false,
+    "max_new_tokens": 512,
+    "repetition_penalty": 1.1,
+    "no_repeat_ngram_size": 0,
+    "batch_size": 16
+  },
+  "num_rows": 300,
+  "num_hit_stop": 277,
+  "frac_hit_stop": 0.9233333333333333,
+  "mean_num_new_tokens": 253.94,
+  "elapsed_s": 334.5394561290741
+}

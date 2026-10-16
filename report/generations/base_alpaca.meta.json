@@ -1,0 +1,18 @@
+{
+  "model_path": "Qwen/Qwen2.5-0.5B",
+  "adapter_path": null,
+  "generator_name": "qwen2.5-0.5b-base",
+  "eval_set": "eval_sets/alpaca_eval_300_seed42.json",
+  "decoding": {
+    "do_sample": false,
+    "max_new_tokens": 512,
+    "repetition_penalty": 1.1,
+    "no_repeat_ngram_size": 0,
+    "batch_size": 16
+  },
+  "num_rows": 300,
+  "num_hit_stop": 130,
+  "frac_hit_stop": 0.43333333333333335,
+  "mean_num_new_tokens": 402.9533333333333,
+  "elapsed_s": 352.4500150680542
+}
