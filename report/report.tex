@@ -65,7 +65,7 @@ pairs perfectly but barely changes greedy outputs, and it weakens refusals on sa
 % ===========================================================================
 \section{Repository, Models and Data}
 % ===========================================================================
-\textbf{Code.} \repo{} (commit \TBD{hash}). All training loops, losses and the evaluation harness are
+\textbf{Code.} \repo{} (commit \texttt{7cc699b}). All training loops, losses and the evaluation harness are
 in \texttt{src/alignment/}; \texttt{submission\_adapter.py} wraps them for the grader and all
 176 local tests pass, including the 7 public adapter tests. No Hugging Face \texttt{Trainer} or TRL
 code is used for SFT or the two DPO runs; TRL is used only for the LoRA persona track, as required.
