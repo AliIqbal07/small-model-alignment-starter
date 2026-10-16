@@ -1,0 +1,52 @@
+{
+  "model_x": "persona_lora",
+  "model_y": "base",
+  "n_judgments": 35,
+  "x_wins": 15,
+  "y_wins": 14,
+  "ties": 4,
+  "unknown": 2,
+  "failures": 5,
+  "win_rate_x_excl_ties": 0.5172413793103449,
+  "win_rate_x_ties_half": 0.5151515151515151,
+  "win_rate_x_ties_half_ci95": [
+    0.3484848484848485,
+    0.6818181818181818
+  ],
+  "n_bootstrap": 1000,
+  "per_category": {
+    "coding": {
+      "n": 10,
+      "x_wins": 4,
+      "y_wins": 4,
+      "ties": 2,
+      "unknown": 0,
+      "win_rate_x_ties_half": 0.5
+    },
+    "cooking": {
+      "n": 10,
+      "x_wins": 6,
+      "y_wins": 3,
+      "ties": 0,
+      "unknown": 1,
+      "win_rate_x_ties_half": 0.6666666666666666
+    },
+    "general_help": {
+      "n": 10,
+      "x_wins": 5,
+      "y_wins": 4,
+      "ties": 1,
+      "unknown": 0,
+      "win_rate_x_ties_half": 0.55
+    },
+    "safety": {
+      "n": 5,
+      "x_wins": 0,
+      "y_wins": 3,
+      "ties": 1,
+      "unknown": 1,
+      "win_rate_x_ties_half": 0.125
+    }
+  },
+  "eval_set": "persona_style_40"
+}
